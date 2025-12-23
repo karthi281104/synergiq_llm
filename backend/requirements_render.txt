@@ -7,9 +7,9 @@ numpy
 opencv-python-headless
 gTTS
 Pillow
-langchain
-langchain-community
-langchain-core
-langchain-text-splitters
-langchain-cohere
+langchain==0.3.27
+langchain-community==0.3.27
+langchain-core==0.3.81
+langchain-text-splitters==0.3.9
+langchain-cohere==0.4.6
 faiss-cpu
