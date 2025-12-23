@@ -14,7 +14,6 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import PromptTemplate
 from langchain_cohere.chat_models import ChatCohere
-from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from langchain_cohere.embeddings import CohereEmbeddings
 from dotenv import load_dotenv
@@ -184,8 +183,7 @@ async def chat_with_pdf(payload: ChatRequest):
         "You are a helpful assistant answering queries about the PDF.\n\nQuestion: {question}"
     )
     llm = ChatCohere(cohere_api_key=api_key, model="command-r")
-    memory = ConversationBufferMemory(output_key="answer", memory_key="chat_history", return_messages=True)
-    chain = ConversationalRetrievalChain.from_llm(llm=llm, memory=memory, retriever=retriever)
+    chain = ConversationalRetrievalChain.from_llm(llm=llm, retriever=retriever)
 
     result = chain({"question": question, "chat_history": chat_histories[pdf_id]})
     chat_histories[pdf_id].append((question, result["answer"]))
