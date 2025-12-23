@@ -1,23 +1,21 @@
 # Deploy the LLM (FastAPI) to Render
 
-This folder contains:
-- A Streamlit UI app (`conv.py`)
-- A FastAPI service (`backend.py`)
+This folder contains a REST API (FastAPI) in `conv.py`.
 
-## Render setup for Streamlit (Python Web Service)
+## Render setup (Python Web Service)
 
 1. Create a **new Render Web Service** from your repo.
 2. **Root Directory**: leave empty (repo root).
 3. **Build Command**:
 
 ```bash
-pip install -r backend/requirements.txt
+pip install -r backend/requirements_render.txt
 ```
 
 4. **Start Command**:
 
 ```bash
-python -m streamlit run backend/conv.py --server.address 0.0.0.0 --server.port $PORT --server.headless true
+python -m uvicorn backend.conv:app --host 0.0.0.0 --port $PORT
 ```
 
 5. Add environment variables:
@@ -40,4 +38,4 @@ In Vercel → Project → Settings → Environment Variables:
 Then redeploy the Vercel project.
 
 ## Notes
-- For Streamlit, you can verify the service is up by opening the Render URL in your browser.
+- Verify the service is up via `GET /health`.

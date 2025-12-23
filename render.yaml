@@ -1,10 +1,10 @@
 services:
   - type: web
-    name: synergiq-llm-streamlit
+    name: synergiq-conv-rest-api
     env: python
     plan: free
-    buildCommand: pip install -r backend/requirements.txt
-    startCommand: python -m streamlit run backend/conv.py --server.address 0.0.0.0 --server.port $PORT --server.headless true --browser.gatherUsageStats false
+    buildCommand: pip install -r backend/requirements_render.txt
+    startCommand: python -m uvicorn backend.conv:app --host 0.0.0.0 --port $PORT
     autoDeploy: true
     envVars:
       - key: PYTHON_VERSION
