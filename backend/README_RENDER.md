@@ -1,21 +1,23 @@
 # Deploy the LLM (FastAPI) to Render
 
-This folder contains the FastAPI service used by the React frontend page `/content-flow`.
+This folder contains:
+- A Streamlit UI app (`conv.py`)
+- A FastAPI service (`backend.py`)
 
-## Render setup (Python Web Service)
+## Render setup for Streamlit (Python Web Service)
 
 1. Create a **new Render Web Service** from your repo.
 2. **Root Directory**: leave empty (repo root).
 3. **Build Command**:
 
 ```bash
-pip install -r backend/requirements_render.txt
+pip install -r backend/requirements.txt
 ```
 
 4. **Start Command**:
 
 ```bash
-python -m uvicorn backend.backend:app --host 0.0.0.0 --port $PORT
+python -m streamlit run backend/conv.py --server.address 0.0.0.0 --server.port $PORT --server.headless true
 ```
 
 5. Add environment variables:
@@ -38,5 +40,4 @@ In Vercel → Project → Settings → Environment Variables:
 Then redeploy the Vercel project.
 
 ## Notes
-- The FastAPI service supports `CORS_ORIGINS`. If you leave it as `*`, browsers will allow requests but WITHOUT cookies/credentials.
-- You can verify the service is up via `GET /health`.
+- For Streamlit, you can verify the service is up by opening the Render URL in your browser.
