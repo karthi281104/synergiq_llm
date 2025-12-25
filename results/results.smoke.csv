@@ -1,7 +1,0 @@
-method,doc_id,pdf_path,question,gold_answer,answer,em,f1,faithful,citation_precision,citation_coverage,citation_format_valid,judge_parse_ok,latency_s
-ours,0a21fd127fcc6c58,eval/pdfs/ALGORTIHM-SHORT-NOTES-_compressed.pdf,What is the main topic of these notes?,,"The main topic of these notes is asymptotic notations and their properties, with a focus on their application in analyzing the time complexity of algorithms. [p2:c1] [p3:c3] [p4:c7] [p5:c9] [p8:c16]",0.0,0.0,1,,1.0,1.0,1,5.5295
-ours,0a21fd127fcc6c58,eval/pdfs/ALGORTIHM-SHORT-NOTES-_compressed.pdf,List 5 key concepts covered.,,"1. Time complexity: O(nlogn) or O(n) or O(log n) for various algorithms and problems, such as merge sort, closest pair of points, convex hull, knapsack problem, and activity selection problem. [p8:c16] [p11:c21] [p7:c13]
-2. Space complexity: O(n) or O(log n) for merge sort, closest pair of points, and convex hull. [p8:c16]
-3. Divide and conquer (DAC) algorithm: a technique that divides a problem into smaller sub-problems, solves them recursively, and combines the solutions. [p7:c13]
-4. DFS (Depth-First Search) traversal: a graph traversal technique used in both undirected and directed graphs, with specific edge types and node states. [p16:c34]
-5. Asymptotic notation: a way to express the running time of algorithms, with examples of functions that do not satisfy the trichotomy property. [p3:c3]",0.0,0.0,1,,1.0,1.0,1,8.9047

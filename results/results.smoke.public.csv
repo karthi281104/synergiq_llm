@@ -1,9 +1,0 @@
-method,doc_id,pdf_path,question,gold_answer,answer,em,f1,faithful,citation_precision,citation_coverage,citation_format_valid,judge_parse_ok,latency_s
-ours,94ff2fa31219cd6e,eval/pdfs/public/sample.pdf,What is the main topic of these notes?,,"The main topic of these notes is the professional profile and achievements of an individual named Karthikeyan A, with a focus on their education, work experience, and technical skills. [p1:c0] [p1:c1] [p1:c2]",0.0,0.0,1,,1.0,1.0,1,3.6069
-ours,94ff2fa31219cd6e,eval/pdfs/public/sample.pdf,List 5 key concepts covered.,,"1. Hackathons and competitions: The document mentions various achievements in hackathons and competitions, such as PEC HACKS 2.0, Smart India Hackathon 2024, and Hackfest 2024. [p1:c0] [p1:c1]
-2. Web development: The individual has experience and skills in web development, including frameworks like React and full-stack development. [p1:c1] [p1:c2]
-3. IoT (Internet of Things): IoT systems and projects are highlighted, indicating expertise in this field. [p1:c1] [p1:c2]
-4. Cloud computing: The document mentions AWS (Amazon Web Services) as a cloud platform the individual is familiar with. [p1:c1] [p1:c2]
-5. Quality inspection and helpdesk operations: These are listed as additional skills, suggesting experience in quality control and customer support. [p1:c1] [p1:c2]
-
-All citations: [p1:c0] [p1:c1] [p1:c2]",0.0,0.0,1,,1.0,1.0,1,9.0262

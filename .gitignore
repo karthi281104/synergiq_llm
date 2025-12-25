@@ -16,6 +16,18 @@ eval/pdfs/**/*.pdf
 
 eval/pdfs/private/
 
+# Eval generated artifacts
+eval/dataset.generated.jsonl
+eval/dataset.drafts.jsonl
+eval/dataset.filled.jsonl
+eval/sources_manifest.public.json
+
+# Results artifacts (keep results/results.csv + results/summary.md if you want)
+results/*smoke*.csv
+results/*paper*.csv
+results/*public*.csv
+results/sample_extracted.txt
+
 # OS / editor
 .DS_Store
 .vscode/
