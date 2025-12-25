@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from backend.conv_logic import (
     extract_text_from_pdf,
+    extract_pages_from_pdf,
     clean_extracted_text,
     is_low_information_text,
     summarize_text,
@@ -46,7 +47,8 @@ async def upload_pdf(file: UploadFile = File(...)):
     if doc_id not in _DOCS:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
             temp_pdf.write(data)
-            pdf_text = extract_text_from_pdf(temp_pdf.name)
+            pages = extract_pages_from_pdf(temp_pdf.name)
+            pdf_text = "\n".join((p.get("text") or "") for p in pages)
 
         pdf_text = clean_extracted_text(pdf_text)
         if is_low_information_text(pdf_text):
@@ -59,7 +61,7 @@ async def upload_pdf(file: UploadFile = File(...)):
                 ),
             )
 
-        db, retriever = build_retriever(pdf_text)
+        db, retriever = build_retriever(pdf_text, doc_id=doc_id, pages=pages)
 
         _DOCS[doc_id] = {
             "pdf_text": pdf_text,
@@ -130,6 +132,6 @@ def chat(req: ChatRequest):
         raise HTTPException(status_code=404, detail="Unknown doc_id. Upload a PDF first.")
 
     retriever = doc["retriever"]
-    chain = build_chat_chain(retriever)
-    answer = chat_answer(chain, doc["history"], req.question)
-    return {"doc_id": req.doc_id, "question": req.question, "answer": answer}
+    chain = build_chat_chain(retriever, strict=True)
+    result = chat_answer(chain, doc["history"], req.question)
+    return {"doc_id": req.doc_id, "question": req.question, **result}
