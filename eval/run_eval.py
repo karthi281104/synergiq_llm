@@ -22,6 +22,34 @@ from langchain_cohere.chat_models import ChatCohere
 NOT_FOUND = "Not found in the document."
 
 
+_CITATION_RE = re.compile(r"\[p(\?|\d+):c(\d+)\]")
+
+
+def _extract_citations(text: str) -> list[tuple[str, str]]:
+    """Return list of (page, chunk_id) strings parsed from [pX:cY] tags."""
+    text = text or ""
+    return [(m.group(1), m.group(2)) for m in _CITATION_RE.finditer(text)]
+
+
+def citation_coverage(answer: str) -> float:
+    """1 if answer contains at least one citation tag, else 0."""
+    return 1.0 if len(_extract_citations(answer)) > 0 else 0.0
+
+
+def citation_format_valid(answer: str) -> float:
+    """1 if all bracketed tags look like valid citations OR there are no bracket tags."""
+    answer = answer or ""
+    bracket_tags = re.findall(r"\[[^\]]+\]", answer)
+    if not bracket_tags:
+        return 1.0
+
+    valid_tags = set([f"[p{p}:c{c}]" for p, c in _extract_citations(answer)])
+    for tag in bracket_tags:
+        if tag not in valid_tags:
+            return 0.0
+    return 1.0
+
+
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _REPO_ROOT = os.path.dirname(_HERE)
 _BACKEND_ENV = os.path.join(_REPO_ROOT, "backend", ".env")
@@ -114,6 +142,7 @@ def _llm_only_answer(question: str, *, model: str) -> str:
 class JudgeResult:
     supported: bool
     citation_precision: float | None
+    parse_ok: bool
 
 
 def _judge_faithfulness(question: str, answer: str, sources: list[dict], *, model: str) -> JudgeResult:
@@ -146,15 +175,15 @@ def _judge_faithfulness(question: str, answer: str, sources: list[dict], *, mode
         supported = bool(data.get("supported"))
         cp = data.get("citation_precision")
         if cp is None:
-            return JudgeResult(supported=supported, citation_precision=None)
+            return JudgeResult(supported=supported, citation_precision=None, parse_ok=True)
         try:
             cp_f = float(cp)
         except Exception:
             cp_f = None
-        return JudgeResult(supported=supported, citation_precision=cp_f)
+        return JudgeResult(supported=supported, citation_precision=cp_f, parse_ok=True)
     except Exception:
         # If judge fails to return JSON, be conservative.
-        return JudgeResult(supported=False, citation_precision=None)
+        return JudgeResult(supported=False, citation_precision=None, parse_ok=False)
 
 
 def run_method(
@@ -257,6 +286,9 @@ def main() -> None:
         "f1",
         "faithful",
         "citation_precision",
+        "citation_coverage",
+        "citation_format_valid",
+        "judge_parse_ok",
         "latency_s",
     ]
 
@@ -295,6 +327,10 @@ def main() -> None:
 
             judge = _judge_faithfulness(question, answer, sources, model=args.judge_model)
 
+            needs_citations = _normalize(answer) != _normalize(NOT_FOUND)
+            cov = citation_coverage(answer) if needs_citations else 1.0
+            fmt = citation_format_valid(answer) if needs_citations else 1.0
+
             rec = {
                 "method": method,
                 "doc_id": doc_id,
@@ -306,6 +342,9 @@ def main() -> None:
                 "f1": f1,
                 "faithful": 1 if judge.supported else 0,
                 "citation_precision": "" if judge.citation_precision is None else judge.citation_precision,
+                "citation_coverage": cov,
+                "citation_format_valid": fmt,
+                "judge_parse_ok": 1 if judge.parse_ok else 0,
                 "latency_s": round(latency, 4),
             }
             all_records.append(rec)
@@ -325,7 +364,11 @@ def main() -> None:
         vals = list(vals)
         return sum(vals) / max(len(vals), 1)
 
-    lines = ["# Evaluation Summary\n", "| method | EM | F1 | Faithfulness | Citation precision | Latency (s) |", "|---|---:|---:|---:|---:|---:|"]
+    lines = [
+        "# Evaluation Summary\n",
+        "| method | EM | F1 | Faithfulness | Citation precision | Citation coverage | Citation format | Judge parse ok | Latency (s) |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+    ]
     for m in methods:
         recs = by_method.get(m, [])
         em_avg = _avg(float(r["em"]) for r in recs)
@@ -333,9 +376,14 @@ def main() -> None:
         faith_avg = _avg(float(r["faithful"]) for r in recs)
         cp_vals = [float(r["citation_precision"]) for r in recs if str(r.get("citation_precision") or "").strip() != ""]
         cp_avg = _avg(cp_vals) if cp_vals else float("nan")
+        cov_avg = _avg(float(r["citation_coverage"]) for r in recs)
+        fmt_avg = _avg(float(r["citation_format_valid"]) for r in recs)
+        parse_avg = _avg(float(r["judge_parse_ok"]) for r in recs)
         lat_avg = _avg(float(r["latency_s"]) for r in recs)
         cp_cell = f"{cp_avg:.3f}" if cp_vals else "N/A"
-        lines.append(f"| {m} | {em_avg:.3f} | {f1_avg:.3f} | {faith_avg:.3f} | {cp_cell} | {lat_avg:.3f} |")
+        lines.append(
+            f"| {m} | {em_avg:.3f} | {f1_avg:.3f} | {faith_avg:.3f} | {cp_cell} | {cov_avg:.3f} | {fmt_avg:.3f} | {parse_avg:.3f} | {lat_avg:.3f} |"
+        )
 
     with open(summary_path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")

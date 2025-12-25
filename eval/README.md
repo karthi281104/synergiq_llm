@@ -27,5 +27,10 @@ Outputs:
 - `results/results.csv`
 - `results/summary.md`
 
+Additional metrics in `results.csv` (useful for papers):
+- `citation_coverage`: fraction of non-refusal answers that include at least one citation tag like `[p3:c7]`
+- `citation_format_valid`: whether bracketed tags follow the required `[pX:cY]` format
+- `judge_parse_ok`: whether the LLM-judge returned valid JSON (use this to report judge failure-rate)
+
 ## Notes
 - Faithfulness and citation precision are computed using an LLM-judge (Cohere). For a paper, include a small manual spot-check as well.
