@@ -1,4 +1,4 @@
-# Synergiq LLM — Citation-Grounded PDF-QA (RAG)
+# Synergiq : An End-to-End LLM System for Educational Notes With Grounded Chat and Audio-Summary Generation
 
 This repo implements a **citation-grounded PDF Question Answering** backend (ideal for **education/lecture notes**) using:
 - Robust PDF text extraction and cleaning
@@ -48,6 +48,8 @@ pip install -r backend/requirements.txt
 python -m uvicorn backend.conv:app --host 0.0.0.0 --port 8000
 ```
 
+If you see `Errno 10048` on Windows, port `8000` is already in use—either stop the other process or run on a different port (e.g. `--port 8001`).
+
 Endpoints:
 - `POST /upload_pdf` (multipart file)
 - `POST /chat` → returns `{ answer, sources }`
@@ -84,7 +86,7 @@ Outputs:
 - `results/summary.md` (table you can paste into a paper)
 
 ### Tentative results (included)
-See `results/TENTATIVE_RESULTS.md` for the current tentative table and the exact commands to reproduce.
+See `results/RESULTS.md` for the current results summary and the exact commands to reproduce.
 
 ### Baselines included
 - `llm_only`: no retrieval
