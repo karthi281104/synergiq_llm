@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import re
 import textwrap
 from dataclasses import dataclass
 from typing import Any
@@ -8,10 +9,14 @@ from typing import Any
 from dotenv import load_dotenv
 
 from backend.conv_logic import (
-    build_retriever,
     clean_extracted_text,
     extract_pages_from_pdf,
 )
+
+try:
+    from backend.conv_logic import build_retriever
+except Exception:  # pragma: no cover
+    build_retriever = None  # type: ignore
 
 try:
     from langchain_cohere.chat_models import ChatCohere
@@ -54,6 +59,52 @@ class _Index:
     db: Any
 
 
+_WORD_RE = re.compile(r"[a-z0-9]+")
+
+
+def _tokens(s: str) -> set[str]:
+    return set(_WORD_RE.findall((s or "").lower()))
+
+
+def _chunk_pages(pages: list[dict[str, Any]], *, chunk_size: int, chunk_overlap: int) -> list[dict[str, Any]]:
+    # Minimal chunker to avoid depending on vector DBs/embeddings.
+    # Keeps (page, chunk_id, text).
+    chunks: list[dict[str, Any]] = []
+    chunk_id = 0
+    for p in pages:
+        page_num = p.get("page")
+        text = (p.get("text") or "").strip()
+        if not text:
+            continue
+
+        start = 0
+        while start < len(text):
+            end = min(len(text), start + int(chunk_size))
+            chunk_text = text[start:end].strip()
+            if chunk_text:
+                chunks.append({"page": page_num, "chunk_id": chunk_id, "text": chunk_text})
+                chunk_id += 1
+            if end >= len(text):
+                break
+            start = max(0, end - int(chunk_overlap))
+    return chunks
+
+
+def _lexical_topk(question: str, chunks: list[dict[str, Any]], *, k: int) -> list[dict[str, Any]]:
+    qt = _tokens(question)
+    scored: list[tuple[float, dict[str, Any]]] = []
+    for c in chunks:
+        ct = _tokens(c.get("text") or "")
+        if not ct:
+            continue
+        inter = len(qt & ct)
+        denom = (len(qt) ** 0.5) * (len(ct) ** 0.5)
+        score = (inter / denom) if denom else 0.0
+        scored.append((score, c))
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return [c for s, c in scored[: max(1, int(k))] if s > 0] or [c for _, c in scored[: max(1, int(k))]]
+
+
 def _ensure_pdf_exists(pdf_path: str) -> None:
     if not os.path.exists(pdf_path):
         raise FileNotFoundError(f"PDF not found: {pdf_path}")
@@ -63,6 +114,9 @@ def _build_index(pdf_path: str, doc_id: str, *, chunk_size: int, chunk_overlap: 
     pages = extract_pages_from_pdf(pdf_path)
     for p in pages:
         p["text"] = clean_extracted_text(p.get("text") or "")
+
+    if build_retriever is None:
+        raise RuntimeError("Vector mode unavailable: build_retriever import failed")
 
     pdf_text = "\n".join((p.get("text") or "") for p in pages)
     db, _retriever = build_retriever(
@@ -133,6 +187,12 @@ def main() -> None:
     p.add_argument("--chunk-overlap", type=int, default=150)
     p.add_argument("--k", type=int, default=4, help="Number of evidence chunks to attach.")
     p.add_argument("--evidence-max-chars", type=int, default=350)
+    p.add_argument(
+        "--retrieval",
+        default="lexical",
+        choices=["lexical", "vector"],
+        help="Evidence retrieval method. 'lexical' uses local token overlap (no API). 'vector' uses embeddings/FAISS.",
+    )
     p.add_argument("--draft-with-llm", action="store_true", help="Also generate draft_gold_answer using the chat model.")
     p.add_argument(
         "--write-to-gold",
@@ -147,6 +207,7 @@ def main() -> None:
         rows = rows[: args.max_rows]
 
     cache: dict[tuple[str, str], _Index] = {}
+    lexical_cache: dict[tuple[str, str], list[dict[str, Any]]] = {}
 
     out_rows: list[dict[str, Any]] = []
     for r in rows:
@@ -165,14 +226,31 @@ def main() -> None:
         _ensure_pdf_exists(pdf_path)
 
         key = (pdf_path, doc_id)
-        if key not in cache:
-            cache[key] = _build_index(pdf_path, doc_id, chunk_size=args.chunk_size, chunk_overlap=args.chunk_overlap)
+        evidence: list[str] = []
+        if args.retrieval == "vector":
+            if key not in cache:
+                cache[key] = _build_index(pdf_path, doc_id, chunk_size=args.chunk_size, chunk_overlap=args.chunk_overlap)
+            idx = cache[key]
+            docs = idx.db.similarity_search(question, k=int(args.k))
+            evidence = [_format_evidence(d, max_chars=int(args.evidence_max_chars)) for d in docs]
+        else:
+            # lexical mode: local-only, no embeddings.
+            if key not in lexical_cache:
+                pages = extract_pages_from_pdf(pdf_path)
+                for p0 in pages:
+                    p0["text"] = clean_extracted_text(p0.get("text") or "")
+                lexical_cache[key] = _chunk_pages(pages, chunk_size=int(args.chunk_size), chunk_overlap=int(args.chunk_overlap))
 
-        idx = cache[key]
-
-        # Use similarity_search; we don’t need scores for drafts.
-        docs = idx.db.similarity_search(question, k=int(args.k))
-        evidence = [_format_evidence(d, max_chars=int(args.evidence_max_chars)) for d in docs]
+            chunks = lexical_cache[key]
+            top = _lexical_topk(question, chunks, k=int(args.k))
+            for c in top:
+                page = c.get("page")
+                chunk_id = c.get("chunk_id")
+                label = f"[p{page}:c{chunk_id}]" if page is not None and chunk_id is not None else ""
+                txt = (c.get("text") or "").strip()
+                if int(args.evidence_max_chars) > 0 and len(txt) > int(args.evidence_max_chars):
+                    txt = txt[: int(args.evidence_max_chars)].rstrip() + "…"
+                evidence.append((label + " " + txt).strip())
 
         rr = dict(r)
         draft_ev = "\n".join(evidence).strip()
