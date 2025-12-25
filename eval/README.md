@@ -31,7 +31,7 @@ For paper tables, run eval with `--only-public`.
 Put your PDFs into `eval/pdfs/public/`, then generate a dataset skeleton:
 
 ```bash
-python -m eval.make_dataset --pdfs eval/pdfs/public --out eval/dataset.generated.jsonl --per-pdf 8 --source-type own
+python -m eval.make_dataset --pdfs eval/pdfs/public --out eval/dataset.generated.jsonl --per-pdf 20 --source-type own
 ```
 
 Mixed own + open PDFs (recommended):
@@ -47,12 +47,21 @@ python -m eval.make_sources_manifest --pdfs eval/pdfs/public --out eval/sources_
 3) Generate the dataset using the manifest:
 
 ```bash
-python -m eval.make_dataset --pdfs eval/pdfs/public --out eval/dataset.generated.jsonl --per-pdf 8 --sources-manifest eval/sources_manifest.json
+python -m eval.make_dataset --pdfs eval/pdfs/public --out eval/dataset.generated.jsonl --per-pdf 20 --sources-manifest eval/sources_manifest.json
 ```
 
 Then:
 - copy/rename `eval/dataset.generated.jsonl` → `eval/dataset.jsonl`
 - fill in `gold_answer` and `gold_evidence` for each row
+
+### Offline bootstrapping (no API calls)
+To speed up labeling, you can auto-suggest evidence and short extractive draft answers locally (no Cohere calls):
+
+```bash
+python -m eval.assist_fill_gold --dataset eval/dataset.jsonl --out eval/dataset.jsonl --retrieval lexical --draft-offline --write-to-gold
+```
+
+This is intended as a starting point; review/edit the gold fields for paper-quality labels.
 
 ## Run
 From repo root:

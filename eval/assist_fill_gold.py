@@ -177,6 +177,28 @@ def _draft_answer_with_llm(question: str, evidence: list[str], *, model: str) ->
     return text or NOT_FOUND
 
 
+def _strip_label(line: str) -> str:
+    line = (line or "").strip()
+    line = re.sub(r"^\[p(\?|\d+):c\d+\]\s*", "", line)
+    return line.strip()
+
+
+def _draft_answer_offline(evidence: list[str], *, max_chars: int = 260) -> str:
+    # Offline heuristic draft: extractive snippet from the top evidence.
+    # Intended only for bootstrapping; must be human-reviewed.
+    for e in evidence:
+        e = _strip_label(e)
+        if not e:
+            continue
+        text = " ".join(e.split())
+        if not text:
+            continue
+        if max_chars > 0 and len(text) > max_chars:
+            text = text[:max_chars].rstrip() + "…"
+        return text
+    return NOT_FOUND
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description="Generate draft gold_answer and gold_evidence suggestions for eval/dataset.jsonl.")
     p.add_argument("--dataset", default="eval/dataset.jsonl")
@@ -194,6 +216,11 @@ def main() -> None:
         help="Evidence retrieval method. 'lexical' uses local token overlap (no API). 'vector' uses embeddings/FAISS.",
     )
     p.add_argument("--draft-with-llm", action="store_true", help="Also generate draft_gold_answer using the chat model.")
+    p.add_argument(
+        "--draft-offline",
+        action="store_true",
+        help="Generate draft_gold_answer using an offline extractive heuristic (no API).",
+    )
     p.add_argument(
         "--write-to-gold",
         action="store_true",
@@ -258,11 +285,13 @@ def main() -> None:
 
         if args.draft_with_llm:
             rr["draft_gold_answer"] = _draft_answer_with_llm(question, evidence, model=args.llm_model)
+        elif args.draft_offline:
+            rr["draft_gold_answer"] = _draft_answer_offline(evidence)
 
         if args.write_to_gold and not gold:
             if draft_ev and not str(rr.get("gold_evidence") or "").strip():
                 rr["gold_evidence"] = draft_ev
-            if args.draft_with_llm:
+            if args.draft_with_llm or args.draft_offline:
                 da = str(rr.get("draft_gold_answer") or "").strip()
                 if da and not str(rr.get("gold_answer") or "").strip():
                     rr["gold_answer"] = da

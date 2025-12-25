@@ -29,6 +29,15 @@ def _default_questions() -> list[str]:
         "What are the advantages and limitations of the main method/topic (as stated)?",
         "Summarize the key takeaways in 3 bullet points.",
         "Is there any deadline/submission instruction in the document? If not, answer 'Not found in the document.'",
+        "What is one definition stated in the notes? Quote it exactly if present; otherwise answer 'Not found in the document.'",
+        "What is the time complexity of one algorithm mentioned (as stated)? If not present, answer 'Not found in the document.'",
+        "List 3 important keywords/terms that appear in the notes.",
+        "What is one theorem/lemma/property stated? If not present, answer 'Not found in the document.'",
+        "Describe one table/list mentioned (what items are compared or listed). If none, answer 'Not found in the document.'",
+        "What is one stated limitation/constraint? If none, answer 'Not found in the document.'",
+        "What is one stated advantage/benefit? If none, answer 'Not found in the document.'",
+        "Provide one short quote (1–2 sentences) from the notes that best represents the topic.",
+        "What is one abbreviation/acronym expanded in the notes? If none, answer 'Not found in the document.'",
     ]
 
 
@@ -43,7 +52,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Generate eval/dataset.jsonl skeleton from PDFs.")
     parser.add_argument("--pdfs", default="eval/pdfs/public", help="Folder containing PDFs")
     parser.add_argument("--out", default="eval/dataset.generated.jsonl", help="Output JSONL path")
-    parser.add_argument("--per-pdf", type=int, default=8, help="Number of questions per PDF (max 11)")
+    parser.add_argument("--per-pdf", type=int, default=8, help="Number of questions per PDF (max: size of built-in question bank)")
     parser.add_argument(
         "--sources-manifest",
         default="",

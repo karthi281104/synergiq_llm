@@ -2,7 +2,7 @@
 
 Generated on: 2025-12-25
 
-This repo contains the latest comparison table in `results/summary.md` and raw rows in `results/results.csv`.
+This repo can generate a comparison table in `results/summary.md` and raw rows in `results/results.csv`.
 
 ## What’s included
 - Baselines: `llm_only`, `rag_similarity`, `rag_mmr`
@@ -16,9 +16,9 @@ From repo root:
 python -m eval.run_eval --dataset eval/dataset.jsonl --out results/results.csv --only-public --methods llm_only,rag_similarity,rag_mmr,ours --skip-judge
 ```
 
-Note: the current `eval/dataset.jsonl` has **no human gold answers/evidence yet**, so EM/F1 will be N/A until gold labels are added.
+Note: `eval/dataset.jsonl` currently contains **bootstrapped (auto-filled) gold_answer/gold_evidence** generated offline from retrieved snippets. This is meant to accelerate labeling and should be reviewed/edited for a paper.
 
-Paper EM/F1 run (after filling `gold_answer`/`gold_evidence`):
+Paper EM/F1 run (after reviewing/fixing `gold_answer`/`gold_evidence`):
 
 ```bash
 python -m eval.run_eval --dataset eval/dataset.jsonl --out results/results.paper.csv --only-public --methods llm_only,rag_similarity,rag_mmr,ours --require-gold
