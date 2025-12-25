@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "defaults": {
+    "source_type": "own",
+    "source_url": "",
+    "license": ""
+  },
+  "pdfs": {
+    "eval/pdfs/private/ALGORTIHM-SHORT-NOTES-_compressed.pdf": {
+      "source_type": "paid_private",
+      "source_url": "",
+      "license": ""
+    },
+    "eval/pdfs/private/C-PROGRAMMING_SHORT_NOTES-_compressed-.pdf": {
+      "source_type": "paid_private",
+      "source_url": "",
+      "license": ""
+    },
+    "eval/pdfs/private/CD_ShortNotes2025-_compressed.pdf": {
+      "source_type": "paid_private",
+      "source_url": "",
+      "license": ""
+    },
+    "eval/pdfs/private/COA-SHORT-NOTES-_compressed_compressed.pdf": {
+      "source_type": "paid_private",
+      "source_url": "",
+      "license": ""
+    },
+    "eval/pdfs/private/Computer-Network--_compressed.pdf": {
+      "source_type": "paid_private",
+      "source_url": "",
+      "license": ""
+    },
+    "eval/pdfs/private/DATA-STRUCTURE-SHORT-NOTES_compressed.pdf": {
+      "source_type": "paid_private",
+      "source_url": "",
+      "license": ""
+    },
+    "eval/pdfs/private/DBMS-SHORT-NOTES_compressed.pdf": {
+      "source_type": "paid_private",
+      "source_url": "",
+      "license": ""
+    },
+    "eval/pdfs/private/DIGITAL-LOGIC-COMBINE-SHORT-NOTE.pdf": {
+      "source_type": "paid_private",
+      "source_url": "",
+      "license": ""
+    },
+    "eval/pdfs/private/Discrete-Maths_compressed.pdf": {
+      "source_type": "paid_private",
+      "source_url": "",
+      "license": ""
+    },
+    "eval/pdfs/private/EM-SHORT-NOTES-.pdf": {
+      "source_type": "paid_private",
+      "source_url": "",
+      "license": ""
+    },
+    "eval/pdfs/private/GENERAL-APTITUDE-DA-SHORT-NOTES-_compressed.pdf": {
+      "source_type": "paid_private",
+      "source_url": "",
+      "license": ""
+    },
+    "eval/pdfs/private/Operating-System-.pdf": {
+      "source_type": "paid_private",
+      "source_url": "",
+      "license": ""
+    },
+    "eval/pdfs/private/TOC-SHORT-NOTES_compressed.pdf": {
+      "source_type": "paid_private",
+      "source_url": "",
+      "license": ""
+    },
+    "eval/pdfs/public/sample.pdf": {
+      "source_type": "own",
+      "source_url": "",
+      "license": ""
+    }
+  }
+}

@@ -1,6 +1,6 @@
 # Synergiq LLM — Citation-Grounded PDF-QA (RAG)
 
-This repo implements a **citation-grounded PDF Question Answering** backend using:
+This repo implements a **citation-grounded PDF Question Answering** backend (ideal for **education/lecture notes**) using:
 - Robust PDF text extraction and cleaning
 - Chunked retrieval with FAISS + Cohere embeddings
 - **Grounded answering with refusal** (“Not found in the document.”)
@@ -18,6 +18,11 @@ PDF -> page text -> chunk docs (metadata: doc_id/page/chunk_id)
 ### Scope
 - Target: **text-based PDFs** (searchable text).
 - Scanned/image PDFs require OCR; currently the API rejects “low information” PDFs.
+
+### Dataset / copyright note (for papers)
+- Keep **shareable PDFs** (your own notes or open-licensed) under `eval/pdfs/public/`.
+- Keep paid/copyrighted PDFs under `eval/pdfs/private/` (gitignored).
+- Use `python -m eval.run_eval --only-public` to generate paper tables.
 
 ## Setup
 

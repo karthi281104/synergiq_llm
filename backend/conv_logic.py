@@ -532,8 +532,21 @@ def build_retriever(
     return db, retriever
 
 
-def build_chat_chain(retriever, *, strict: bool = True):
+def build_chat_chain(retriever, *, strict: bool = True, require_citations: bool = True):
     if strict:
+        citation_rules = (
+            "CITATION FORMAT (STRICT):\n"
+            "- Every major claim MUST end with one or more citations.\n"
+            "- Each citation MUST be exactly one tag like [p3:c7] or [p?:c12].\n"
+            "- If multiple citations are needed, write them as separate tags with spaces: [p1:c2] [p1:c1]\n"
+            "- DO NOT put commas inside a single bracket (bad: [p1:c2,p1:c1]).\n"
+            "- DO NOT add extra bracketed notes (only citation tags).\n\n"
+        )
+
+        if not require_citations:
+            citation_rules = ""
+
+        suffix = "ANSWER (with citations):" if require_citations else "ANSWER:"
         template = (
             "You are a citation-grounded PDF question-answering system.\n"
             "SECURITY / SAFETY RULES:\n"
@@ -542,11 +555,10 @@ def build_chat_chain(retriever, *, strict: bool = True):
             "GROUNDING RULES (MUST FOLLOW):\n"
             "- Use ONLY the provided CONTEXT to answer. Do not use external knowledge.\n"
             "- If the answer is not explicitly supported by CONTEXT, reply exactly: Not found in the document.\n"
-            "- Add citations for each major claim using the format [p<page>:c<chunk_id>].\n"
-            "  If page is unknown, still cite the chunk as [p?:c<chunk_id>].\n\n"
+        ) + citation_rules + (
             "CONTEXT:\n{context}\n\n"
             "QUESTION:\n{question}\n\n"
-            "ANSWER (with citations):"
+            + suffix
         )
     else:
         template = (
@@ -574,6 +586,56 @@ def build_chat_chain(retriever, *, strict: bool = True):
     return chain
 
 
+_CITATION_TAG_RE = re.compile(r"\[p(\?|\d+):c(\d+)\]")
+_CITATION_GROUP_RE = re.compile(r"\[(p(?:\?|\d+):c\d+)(?:\s*,\s*(p(?:\?|\d+):c\d+))+\]")
+
+
+def normalize_citation_format(answer: str) -> str:
+    """Normalize citation formatting into separate [pX:cY] tags.
+
+    Converts patterns like:
+    - [p1:c2,p1:c1] -> [p1:c2] [p1:c1]
+    - [p1:c2, p1:c1] -> [p1:c2] [p1:c1]
+
+    Leaves already-correct citations unchanged.
+    """
+
+    text = (answer or "").strip()
+    if not text:
+        return text
+
+    def _split_group(m: re.Match) -> str:
+        inner = m.group(0).strip("[]")
+        parts = [p.strip() for p in inner.split(",") if p.strip()]
+        rebuilt = []
+        for p in parts:
+            # p is like p1:c2
+            if p.startswith("p") and ":c" in p:
+                rebuilt.append(f"[{p}]")
+        return " ".join(rebuilt) if rebuilt else m.group(0)
+
+    # Repeat until no more comma-group citations remain.
+    for _ in range(3):
+        new_text = _CITATION_GROUP_RE.sub(_split_group, text)
+        if new_text == text:
+            break
+        text = new_text
+
+    # Also normalize cases like [p1:c2,p1:c1] that don't match group regex due to odd spacing.
+    # This pass replaces any bracket containing multiple citation tags separated by commas.
+    def _generic_bracket_fix(m: re.Match) -> str:
+        bracket = m.group(0)
+        tags = _CITATION_TAG_RE.findall(bracket)
+        if len(tags) <= 1:
+            return bracket
+        # Reconstruct only citation tags found.
+        rebuilt = [f"[p{p}:c{c}]" for p, c in tags]
+        return " ".join(rebuilt)
+
+    text = re.sub(r"\[[^\]]+\]", _generic_bracket_fix, text)
+    return text
+
+
 def _format_sources(source_documents: list[Document] | None, max_sources: int = 5) -> list[dict]:
     sources: list[dict] = []
     if not source_documents:
@@ -597,7 +659,7 @@ def _format_sources(source_documents: list[Document] | None, max_sources: int = 
 def chat_answer(chain, history: list, query: str) -> dict:
     try:
         result = chain({"question": query, "chat_history": history})
-        answer = result.get("answer", "")
+        answer = normalize_citation_format(result.get("answer", ""))
         sources = _format_sources(result.get("source_documents"), max_sources=5)
         history.append((query, answer))
         return {"answer": answer, "sources": sources}

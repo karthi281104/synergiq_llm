@@ -18,17 +18,17 @@ def _stable_doc_id(pdf_path: str) -> str:
 def _default_questions() -> list[str]:
     # Designed for English lecture notes + skill notes.
     return [
-        "What is the main topic of this document?",
-        "List 5 key concepts covered in the notes.",
-        "Define the most important terms introduced.",
-        "Explain the core idea in simple steps.",
-        "What procedure or workflow is described?",
-        "List any assumptions or prerequisites mentioned.",
-        "What formulas or equations are mentioned?",
-        "What are the key advantages and limitations mentioned?",
-        "Summarize the conclusion or takeaways.",
-        "What are recommended references or resources mentioned?",
-        "Is there any deadline, grading rubric, or submission instruction in the document? If not, answer 'Not found in the document.'",
+        "What is the main topic of these notes?",
+        "List 5 key concepts covered.",
+        "Define two important terms exactly as stated in the notes.",
+        "Write one formula/equation mentioned in the notes (as written).",
+        "List the steps of one algorithm/procedure described in the notes.",
+        "Compare two related concepts/methods mentioned (give at least one difference).",
+        "List any assumptions, prerequisites, or constraints mentioned.",
+        "Give one example mentioned in the notes.",
+        "What are the advantages and limitations of the main method/topic (as stated)?",
+        "Summarize the key takeaways in 3 bullet points.",
+        "Is there any deadline/submission instruction in the document? If not, answer 'Not found in the document.'",
     ]
 
 
@@ -41,14 +41,36 @@ def _iter_pdfs(folder: str) -> Iterable[str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate eval/dataset.jsonl skeleton from PDFs.")
-    parser.add_argument("--pdfs", default="eval/pdfs", help="Folder containing PDFs")
+    parser.add_argument("--pdfs", default="eval/pdfs/public", help="Folder containing PDFs")
     parser.add_argument("--out", default="eval/dataset.generated.jsonl", help="Output JSONL path")
     parser.add_argument("--per-pdf", type=int, default=8, help="Number of questions per PDF (max 11)")
+    parser.add_argument(
+        "--sources-manifest",
+        default="",
+        help="Optional JSON manifest that maps each pdf_path to source_type/source_url/license (recommended for mixed datasets).",
+    )
+    parser.add_argument(
+        "--source-type",
+        default="own",
+        choices=["own", "open", "paid_private"],
+        help="Source category for the PDFs in --pdfs",
+    )
+    parser.add_argument("--source-url", default="", help="Optional URL (for open PDFs)")
+    parser.add_argument("--license", default="", help="Optional license string (e.g., CC-BY-4.0)")
     args = parser.parse_args()
 
     pdf_folder = args.pdfs
     out_path = args.out
     per_pdf = max(1, min(int(args.per_pdf), len(_default_questions())))
+    source_type = args.source_type
+    source_url = (args.source_url or "").strip()
+    license_str = (args.license or "").strip()
+
+    manifest_path = (args.sources_manifest or "").strip()
+    manifest: dict | None = None
+    if manifest_path:
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            manifest = json.load(f)
 
     pdfs = sorted(list(_iter_pdfs(pdf_folder)))
     if not pdfs:
@@ -62,10 +84,34 @@ def main() -> None:
             doc_id = _stable_doc_id(pdf_path)
             # Use repo-relative path when possible (prettier diffs + portability)
             rel_path = os.path.relpath(pdf_path, start=os.getcwd()).replace("\\", "/")
+
+            row_source_type = source_type
+            row_source_url = source_url
+            row_license = license_str
+            if manifest:
+                defaults = manifest.get("defaults", {}) if isinstance(manifest, dict) else {}
+                entry = None
+                pdf_map = manifest.get("pdfs", {}) if isinstance(manifest, dict) else {}
+                if isinstance(pdf_map, dict):
+                    entry = pdf_map.get(rel_path)
+
+                if isinstance(defaults, dict):
+                    row_source_type = str(defaults.get("source_type", row_source_type) or row_source_type)
+                    row_source_url = str(defaults.get("source_url", row_source_url) or row_source_url)
+                    row_license = str(defaults.get("license", row_license) or row_license)
+
+                if isinstance(entry, dict):
+                    row_source_type = str(entry.get("source_type", row_source_type) or row_source_type)
+                    row_source_url = str(entry.get("source_url", row_source_url) or row_source_url)
+                    row_license = str(entry.get("license", row_license) or row_license)
+
             for q in questions:
                 row = {
                     "doc_id": doc_id,
                     "pdf_path": rel_path,
+                    "source_type": row_source_type,
+                    "source_url": row_source_url,
+                    "license": row_license,
                     "question": q,
                     "gold_answer": "",
                     "gold_evidence": "",

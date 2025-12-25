@@ -8,6 +8,14 @@ venv/
 .env
 backend/.env
 
+# Evaluation PDFs
+# Put reproducible/shareable PDFs under eval/pdfs/public/
+# Put paid/copyrighted PDFs under eval/pdfs/private/ (never commit)
+eval/pdfs/**/*.pdf
+!eval/pdfs/public/**/*.pdf
+
+eval/pdfs/private/
+
 # OS / editor
 .DS_Store
 .vscode/

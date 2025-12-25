@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "defaults": {
+    "source_type": "own",
+    "source_url": "",
+    "license": ""
+  },
+  "pdfs": {
+    "eval/pdfs/public/NOTES_EXAMPLE.pdf": {
+      "source_type": "own",
+      "source_url": "",
+      "license": ""
+    },
+    "eval/pdfs/public/OPEN_EXAMPLE.pdf": {
+      "source_type": "open",
+      "source_url": "https://example.com/open.pdf",
+      "license": "CC-BY-4.0"
+    }
+  }
+}

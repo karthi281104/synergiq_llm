@@ -14,6 +14,7 @@ from backend.conv_logic import (
     build_retriever,
     extract_pages_from_pdf,
     clean_extracted_text,
+    normalize_citation_format,
 )
 
 from langchain_cohere.chat_models import ChatCohere
@@ -201,7 +202,11 @@ def run_method(
         answer = _llm_only_answer(question, model=llm_model)
         return {"answer": answer, "sources": []}
 
-    search_type = "similarity" if method in {"rag_similarity", "ours"} else "mmr"
+    # Baselines/variants
+    if method in {"rag_similarity", "ours", "rag_similarity_refusal"}:
+        search_type = "similarity"
+    else:
+        search_type = "mmr"
     _db, retriever = _build_context_index(
         pdf_path,
         doc_id,
@@ -211,13 +216,17 @@ def run_method(
         k=k,
     )
 
-    strict = method == "ours"
-    chain = build_chat_chain(retriever, strict=strict)
+    strict = method in {"ours", "rag_similarity_refusal"}
+    # For the ablation: enforce grounding + refusal but do not require citations.
+    if method == "rag_similarity_refusal":
+        chain = build_chat_chain(retriever, strict=True, require_citations=False)
+    else:
+        chain = build_chat_chain(retriever, strict=strict)
 
     # Keep per-question history empty for evaluation reproducibility.
     result = {"answer": "", "sources": []}
     out = chain({"question": question, "chat_history": []})
-    result["answer"] = out.get("answer", "")
+    result["answer"] = normalize_citation_format(out.get("answer", ""))
 
     if strict:
         # conv_logic.chat_answer formats sources, but for eval we can format ourselves.
@@ -263,14 +272,33 @@ def main() -> None:
     parser.add_argument("--chunk-overlap", type=int, default=150)
     parser.add_argument("--k", type=int, default=5)
     parser.add_argument(
+        "--max-rows",
+        type=int,
+        default=0,
+        help="If > 0, evaluate only the first N dataset rows (useful for smoke tests).",
+    )
+    parser.add_argument(
+        "--only-public",
+        action="store_true",
+        help="If set, evaluate only rows where source_type is 'own' or 'open'.",
+    )
+    parser.add_argument(
         "--methods",
-        default="llm_only,rag_similarity,rag_mmr,ours",
-        help="Comma-separated: llm_only,rag_similarity,rag_mmr,ours",
+        default="llm_only,rag_similarity,rag_similarity_refusal,rag_mmr,ours",
+        help="Comma-separated: llm_only,rag_similarity,rag_similarity_refusal,rag_mmr,ours",
     )
 
     args = parser.parse_args()
 
     rows = load_jsonl(args.dataset)
+    if args.only_public:
+        rows = [
+            r
+            for r in rows
+            if str(r.get("source_type") or "own").strip().lower() in {"own", "open"}
+        ]
+    if int(args.max_rows) > 0:
+        rows = rows[: int(args.max_rows)]
     methods = [m.strip() for m in args.methods.split(",") if m.strip()]
 
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
