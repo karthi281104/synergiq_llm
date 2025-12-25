@@ -16,6 +16,17 @@ Edit `eval/dataset.jsonl`. One JSON object per line:
 - `gold_answer`: reference answer text, or `Not found in the document.`
 - `gold_evidence` (optional): short quote span
 
+## Fast dataset generation (lecture notes)
+Put your PDFs into `eval/pdfs/`, then generate a dataset skeleton:
+
+```bash
+python -m eval.make_dataset --pdfs eval/pdfs --out eval/dataset.generated.jsonl --per-pdf 8
+```
+
+Then:
+- copy/rename `eval/dataset.generated.jsonl` → `eval/dataset.jsonl`
+- fill in `gold_answer` and `gold_evidence` for each row
+
 ## Run
 From repo root:
 
