@@ -287,6 +287,11 @@ def main() -> None:
         help="If set, exit with an error if any dataset row has an empty gold_answer.",
     )
     parser.add_argument(
+        "--skip-judge",
+        action="store_true",
+        help="If set, skip LLM-judge faithfulness/citation precision to reduce API calls (columns become N/A).",
+    )
+    parser.add_argument(
         "--only-public",
         action="store_true",
         help="If set, evaluate only rows where source_type is 'own' or 'open'.",
@@ -375,7 +380,7 @@ def main() -> None:
             em = exact_match(answer, gold) if gold_filled else ""
             f1 = token_f1(answer, gold) if gold_filled else ""
 
-            judge = _judge_faithfulness(question, answer, sources, model=args.judge_model)
+            judge = None if args.skip_judge else _judge_faithfulness(question, answer, sources, model=args.judge_model)
 
             needs_citations = _normalize(answer) != _normalize(NOT_FOUND)
             cov = citation_coverage(answer) if needs_citations else 1.0
@@ -390,11 +395,11 @@ def main() -> None:
                 "answer": answer,
                 "em": em,
                 "f1": f1,
-                "faithful": 1 if judge.supported else 0,
-                "citation_precision": "" if judge.citation_precision is None else judge.citation_precision,
+                "faithful": "" if judge is None else (1 if judge.supported else 0),
+                "citation_precision": "" if judge is None or judge.citation_precision is None else judge.citation_precision,
                 "citation_coverage": cov,
                 "citation_format_valid": fmt,
-                "judge_parse_ok": 1 if judge.parse_ok else 0,
+                "judge_parse_ok": "" if judge is None else (1 if judge.parse_ok else 0),
                 "latency_s": round(latency, 4),
             }
             all_records.append(rec)
@@ -414,7 +419,7 @@ def main() -> None:
         vals = list(vals)
         return sum(vals) / max(len(vals), 1)
 
-    def _avg_key(recs: list[dict[str, Any]], key: str) -> float:
+    def _avg_key(recs: list[dict[str, Any]], key: str) -> tuple[float, int]:
         vals: list[float] = []
         for r in recs:
             v = r.get(key)
@@ -426,7 +431,7 @@ def main() -> None:
                 vals.append(float(v))
             except Exception:
                 continue
-        return _avg(vals)
+        return _avg(vals), len(vals)
 
     lines = [
         "# Evaluation Summary\n",
@@ -438,20 +443,22 @@ def main() -> None:
         total_n = len(recs)
         scored_n = sum(1 for r in recs if _has_gold(str(r.get("gold_answer") or "")))
 
-        em_avg = _avg_key(recs, "em")
-        f1_avg = _avg_key(recs, "f1")
-        faith_avg = _avg_key(recs, "faithful")
+        em_avg, em_n = _avg_key(recs, "em")
+        f1_avg, f1_n = _avg_key(recs, "f1")
+        faith_avg, faith_n = _avg_key(recs, "faithful")
         cp_vals = [float(r["citation_precision"]) for r in recs if str(r.get("citation_precision") or "").strip() != ""]
         cp_avg = _avg(cp_vals) if cp_vals else float("nan")
-        cov_avg = _avg_key(recs, "citation_coverage")
-        fmt_avg = _avg_key(recs, "citation_format_valid")
-        parse_avg = _avg_key(recs, "judge_parse_ok")
-        lat_avg = _avg_key(recs, "latency_s")
+        cov_avg, _ = _avg_key(recs, "citation_coverage")
+        fmt_avg, _ = _avg_key(recs, "citation_format_valid")
+        parse_avg, parse_n = _avg_key(recs, "judge_parse_ok")
+        lat_avg, _ = _avg_key(recs, "latency_s")
         cp_cell = f"{cp_avg:.3f}" if cp_vals else "N/A"
         em_cell = "N/A" if scored_n == 0 else f"{em_avg:.3f}"
         f1_cell = "N/A" if scored_n == 0 else f"{f1_avg:.3f}"
+        faith_cell = "N/A" if faith_n == 0 else f"{faith_avg:.3f}"
+        parse_cell = "N/A" if parse_n == 0 else f"{parse_avg:.3f}"
         lines.append(
-            f"| {m} | {scored_n}/{total_n} | {em_cell} | {f1_cell} | {faith_avg:.3f} | {cp_cell} | {cov_avg:.3f} | {fmt_avg:.3f} | {parse_avg:.3f} | {lat_avg:.3f} |"
+            f"| {m} | {scored_n}/{total_n} | {em_cell} | {f1_cell} | {faith_cell} | {cp_cell} | {cov_avg:.3f} | {fmt_avg:.3f} | {parse_cell} | {lat_avg:.3f} |"
         )
 
     with open(summary_path, "w", encoding="utf-8") as f:

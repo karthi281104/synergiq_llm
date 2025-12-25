@@ -72,9 +72,19 @@ Quick run:
 python -m eval.run_eval --dataset eval/dataset.jsonl --out results/results.csv --k 5 --chunk-size 900
 ```
 
+Paper run (recommended to commit for IEEE tables):
+
+```bash
+python -m eval.run_eval --dataset eval/dataset.jsonl --out results/results.paper.csv --only-public --methods llm_only,rag_similarity,rag_mmr,ours --require-gold
+```
+
 Outputs:
 - `results/results.csv` (per-item metrics)
+- `results/results.paper.csv` (paper run output you can cite)
 - `results/summary.md` (table you can paste into a paper)
+
+### Tentative results (included)
+See `results/TENTATIVE_RESULTS.md` for the current tentative table and the exact commands to reproduce.
 
 ### Baselines included
 - `llm_only`: no retrieval
