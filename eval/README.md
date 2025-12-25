@@ -67,9 +67,19 @@ Paper-safe run (excludes `paid_private` rows):
 python -m eval.run_eval --dataset eval/dataset.jsonl --out results/results.csv --only-public
 ```
 
+Paper-style run with baselines + proposed method (recommended for IEEE tables):
+
+```bash
+python -m eval.run_eval --dataset eval/dataset.jsonl --out results/results.csv --only-public --methods llm_only,rag_similarity,rag_mmr,ours
+```
+
 Outputs:
 - `results/results.csv`
 - `results/summary.md`
+
+Notes on EM/F1:
+- If `gold_answer` is empty for a row, EM/F1 are reported as `N/A` for that row and excluded from EM/F1 averages.
+- For paper results, fill `gold_answer` (and ideally `gold_evidence`) for as many rows as possible (e.g., 100+).
 
 Additional metrics in `results.csv` (useful for papers):
 - `citation_coverage`: fraction of non-refusal answers that include at least one citation tag like `[p3:c7]`

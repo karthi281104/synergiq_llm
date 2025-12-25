@@ -93,6 +93,10 @@ def token_f1(pred: str, gold: str) -> float:
     return 2 * precision * recall / (precision + recall)
 
 
+def _has_gold(gold: str) -> bool:
+    return _normalize(gold) != ""
+
+
 def load_jsonl(path: str) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     with open(path, "r", encoding="utf-8") as f:
@@ -278,6 +282,11 @@ def main() -> None:
         help="If > 0, evaluate only the first N dataset rows (useful for smoke tests).",
     )
     parser.add_argument(
+        "--require-gold",
+        action="store_true",
+        help="If set, exit with an error if any dataset row has an empty gold_answer.",
+    )
+    parser.add_argument(
         "--only-public",
         action="store_true",
         help="If set, evaluate only rows where source_type is 'own' or 'open'.",
@@ -300,6 +309,18 @@ def main() -> None:
     if int(args.max_rows) > 0:
         rows = rows[: int(args.max_rows)]
     methods = [m.strip() for m in args.methods.split(",") if m.strip()]
+
+    missing_gold = sum(1 for r in rows if not _has_gold(str(r.get("gold_answer") or "")))
+    if missing_gold:
+        if args.require_gold:
+            raise SystemExit(
+                f"Dataset has {missing_gold}/{len(rows)} rows with empty gold_answer. "
+                "Fill gold_answer or re-run without --require-gold."
+            )
+        print(
+            f"WARNING: {missing_gold}/{len(rows)} rows have empty gold_answer. "
+            "EM/F1 will be reported as N/A for those rows and excluded from EM/F1 averages."
+        )
 
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
 
@@ -327,6 +348,7 @@ def main() -> None:
         pdf_path = str(r.get("pdf_path") or "").strip()
         question = str(r.get("question") or "").strip()
         gold = str(r.get("gold_answer") or "").strip()
+        gold_filled = _has_gold(gold)
 
         if not doc_id or not pdf_path or not question:
             raise ValueError(f"Invalid dataset row: {r}")
@@ -350,8 +372,8 @@ def main() -> None:
             answer = (result.get("answer") or "").strip()
             sources = result.get("sources") or []
 
-            em = exact_match(answer, gold)
-            f1 = token_f1(answer, gold)
+            em = exact_match(answer, gold) if gold_filled else ""
+            f1 = token_f1(answer, gold) if gold_filled else ""
 
             judge = _judge_faithfulness(question, answer, sources, model=args.judge_model)
 
@@ -392,25 +414,44 @@ def main() -> None:
         vals = list(vals)
         return sum(vals) / max(len(vals), 1)
 
+    def _avg_key(recs: list[dict[str, Any]], key: str) -> float:
+        vals: list[float] = []
+        for r in recs:
+            v = r.get(key)
+            if v is None:
+                continue
+            if isinstance(v, str) and v.strip() == "":
+                continue
+            try:
+                vals.append(float(v))
+            except Exception:
+                continue
+        return _avg(vals)
+
     lines = [
         "# Evaluation Summary\n",
-        "| method | EM | F1 | Faithfulness | Citation precision | Citation coverage | Citation format | Judge parse ok | Latency (s) |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| method | Scored/Total | EM | F1 | Faithfulness | Citation precision | Citation coverage | Citation format | Judge parse ok | Latency (s) |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for m in methods:
         recs = by_method.get(m, [])
-        em_avg = _avg(float(r["em"]) for r in recs)
-        f1_avg = _avg(float(r["f1"]) for r in recs)
-        faith_avg = _avg(float(r["faithful"]) for r in recs)
+        total_n = len(recs)
+        scored_n = sum(1 for r in recs if _has_gold(str(r.get("gold_answer") or "")))
+
+        em_avg = _avg_key(recs, "em")
+        f1_avg = _avg_key(recs, "f1")
+        faith_avg = _avg_key(recs, "faithful")
         cp_vals = [float(r["citation_precision"]) for r in recs if str(r.get("citation_precision") or "").strip() != ""]
         cp_avg = _avg(cp_vals) if cp_vals else float("nan")
-        cov_avg = _avg(float(r["citation_coverage"]) for r in recs)
-        fmt_avg = _avg(float(r["citation_format_valid"]) for r in recs)
-        parse_avg = _avg(float(r["judge_parse_ok"]) for r in recs)
-        lat_avg = _avg(float(r["latency_s"]) for r in recs)
+        cov_avg = _avg_key(recs, "citation_coverage")
+        fmt_avg = _avg_key(recs, "citation_format_valid")
+        parse_avg = _avg_key(recs, "judge_parse_ok")
+        lat_avg = _avg_key(recs, "latency_s")
         cp_cell = f"{cp_avg:.3f}" if cp_vals else "N/A"
+        em_cell = "N/A" if scored_n == 0 else f"{em_avg:.3f}"
+        f1_cell = "N/A" if scored_n == 0 else f"{f1_avg:.3f}"
         lines.append(
-            f"| {m} | {em_avg:.3f} | {f1_avg:.3f} | {faith_avg:.3f} | {cp_cell} | {cov_avg:.3f} | {fmt_avg:.3f} | {parse_avg:.3f} | {lat_avg:.3f} |"
+            f"| {m} | {scored_n}/{total_n} | {em_cell} | {f1_cell} | {faith_avg:.3f} | {cp_cell} | {cov_avg:.3f} | {fmt_avg:.3f} | {parse_avg:.3f} | {lat_avg:.3f} |"
         )
 
     with open(summary_path, "w", encoding="utf-8") as f:
