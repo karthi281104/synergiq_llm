@@ -1,0 +1,12 @@
+method,doc_id,pdf_path,question,gold_answer,answer,em,f1,faithful,citation_precision,citation_coverage,citation_format_valid,judge_parse_ok,latency_s
+ours,0a21fd127fcc6c58,eval/pdfs/public/ALGORTIHM-SHORT-NOTES-_compressed.pdf,What is the main topic of these notes?,,"The main topic of these notes is Asymptotic Notations, specifically θ-Notation, O-Notation, and Ω-Notation, and their applications in analyzing the time complexity of algorithms. [p2:c1] [p3:c3] [p4:c7] [p5:c9] [p8:c16]",0.0,0.0,1,,1.0,1.0,1,4.7047
+ours,0a21fd127fcc6c58,eval/pdfs/public/ALGORTIHM-SHORT-NOTES-_compressed.pdf,List 5 key concepts covered.,,"1. Divide and Conquer (DAC) algorithm and its time complexity analysis [p7:c13]
+2. Asymptotic notation and its properties [p3:c3]
+3. Loop analysis and time complexity [p3:c3]
+4. Graph traversal techniques, specifically Depth-First Search (DFS) in undirected and directed graphs [p16:c34]
+5. Knapsack problem and activity selection problem with their time complexities [p11:c21]",0.0,0.0,1,,1.0,1.0,1,5.5749
+ours,0a21fd127fcc6c58,eval/pdfs/public/ALGORTIHM-SHORT-NOTES-_compressed.pdf,Define two important terms exactly as stated in the notes.,,"**1. Asymptotic Notations:**
+- θ-Notation: f(n) = θ (g(n)) if and only if f(n) ≤ c1 . g(n) and f(n) ≥ c2 . g(n) for all n ≥  n0, where c1, c2, and n0 are positive constants with c1 > 0, c2 > 0, and n0 ≥ 1. [p2:c1]
+
+**2. Discrete Properties of Asymptotic Notation:**
+- Trichotomy Property: For any two real numbers (a, b), there is a relation between them (a > b, a < b, or a = b). Asymptotic notation does not satisfy this property. [p5:c9]",0.0,0.0,1,,1.0,1.0,1,5.4785
