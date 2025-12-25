@@ -1,0 +1,2 @@
+{"doc_id":"sample_doc","pdf_path":"eval/pdfs/sample.pdf","question":"What is the eligibility criteria?","gold_answer":"...","gold_evidence":"Optional short quote span from the PDF."}
+{"doc_id":"sample_doc","pdf_path":"eval/pdfs/sample.pdf","question":"What is the application deadline?","gold_answer":"Not found in the document.","gold_evidence":""}

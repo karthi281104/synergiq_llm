@@ -1,3 +1,14 @@
+"""LEGACY (not used).
+
+This file is kept for reference only.
+
+The supported/reproducible API used for deployment is:
+- backend/conv.py
+- backend/conv_logic.py
+
+Render uses: `python -m uvicorn backend.conv:app` (see render.yaml).
+"""
+
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi import Body

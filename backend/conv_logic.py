@@ -61,6 +61,8 @@ else:
 
 api_key = os.getenv("COHERE_API_KEY")
 embed_model = os.getenv("COHERE_EMBED_MODEL", "embed-multilingual-v3.0")
+chat_model = os.getenv("COHERE_CHAT_MODEL", "command-r-08-2024")
+judge_model = os.getenv("COHERE_JUDGE_MODEL", chat_model)
 tts_voice = os.getenv("TTS_VOICE", "en-IN-PrabhatNeural")
 tts_rate = os.getenv("TTS_RATE", "+0%")
 tts_pitch = os.getenv("TTS_PITCH", "+0Hz")
@@ -280,7 +282,7 @@ def text_to_audio(text: str) -> str | None:
 
     if tts_casual:
         try:
-            narrator = ChatCohere(cohere_api_key=api_key)
+            narrator = ChatCohere(cohere_api_key=api_key, model=chat_model)
             rewrite_prompt = (
                 "Rewrite the following content into a friendly, casual teacher-style narration in English. "
                 "Keep it accurate, simple, and easy to understand. Use light conversational phrasing, but avoid rude, offensive, or unsafe slang. "
@@ -439,7 +441,7 @@ def summarize_text(text: str) -> str:
     if not chunks:
         return "I am sorry, this information is not available."
 
-    summarizer = ChatCohere(cohere_api_key=api_key)
+    summarizer = ChatCohere(cohere_api_key=api_key, model=chat_model)
     chunk_summaries = []
     try:
         for chunk in chunks:
@@ -559,7 +561,7 @@ def build_chat_chain(retriever, *, strict: bool = True):
         input_variables=["page_content", "page", "chunk_id"],
         template="[p{page}:c{chunk_id}]\n{page_content}",
     )
-    llm = ChatCohere(cohere_api_key=api_key)
+    llm = ChatCohere(cohere_api_key=api_key, model=chat_model)
     memory = ConversationBufferMemory(output_key="answer", memory_key="chat_history", return_messages=True)
     chain = ConversationalRetrievalChain.from_llm(
         llm=llm,

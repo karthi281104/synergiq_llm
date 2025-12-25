@@ -1,0 +1,17 @@
+method,doc_id,pdf_path,question,gold_answer,answer,em,f1,faithful,citation_precision,latency_s
+llm_only,sample_doc,eval/pdfs/sample.pdf,What is the eligibility criteria?,...,"I am an AI language model and do not have access to real-time information or specific contexts, so my knowledge is limited to the data I was trained on up until January 2023. 
+
+Could you please provide more context or specify the domain you are referring to? The eligibility criteria can vary greatly depending on the situation, such as for a job application, a scholarship, a government benefit, or a medical procedure. 
+
+If you provide more details, I can attempt to give you a more accurate and helpful response.",0.0,0.0,0,,5.7961
+rag_similarity,sample_doc,eval/pdfs/sample.pdf,What is the eligibility criteria?,...,"I'm sorry, I couldn't find any information in the provided context that explicitly states the eligibility criteria. The context primarily focuses on the applicant's skills, certifications, achievements, and work experience. 
+
+If you provide me with additional context or clarify the specific eligibility criteria you are looking for, I can assist you further.",0.0,0.0,1,,5.2212
+rag_mmr,sample_doc,eval/pdfs/sample.pdf,What is the eligibility criteria?,...,"I'm sorry, I couldn't find any information about the eligibility criteria in the provided context. The text does not specify any requirements or qualifications for a particular role or opportunity. 
+
+Would you like me to assist you with any other questions regarding this context?",0.0,0.0,1,,68.5675
+ours,sample_doc,eval/pdfs/sample.pdf,What is the eligibility criteria?,...,Not found in the document. [p?:c0],0.0,0.0,1,,1.9286
+llm_only,sample_doc,eval/pdfs/sample.pdf,What is the application deadline?,Not found in the document.,"I'm sorry, I'm unsure of the specific application deadline you are referring to. Could you please provide me with more context or details about the application process you are inquiring about? I'll do my best to provide an accurate response once I have more information.",0.0,0.039999999999999994,1,,1.4335
+rag_similarity,sample_doc,eval/pdfs/sample.pdf,What is the application deadline?,Not found in the document.,"I'm sorry, I couldn't find the application deadline in the provided context. The context seems to be a resume or CV of an individual named Karthikeyan A, and it outlines their education, work experience, skills, and achievements. However, there is no mention of an application deadline for any specific role or opportunity.",0.0,0.07017543859649124,1,,2.5832
+rag_mmr,sample_doc,eval/pdfs/sample.pdf,What is the application deadline?,Not found in the document.,"I'm sorry, I couldn't find the application deadline in the provided context. Could you please clarify which application you are referring to?",0.0,0.14814814814814814,1,,2.1854
+ours,sample_doc,eval/pdfs/sample.pdf,What is the application deadline?,Not found in the document.,Not found in the document.,1.0,1.0,1,,1.6185
